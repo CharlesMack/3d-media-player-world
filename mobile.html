@@ -1,10 +1,3 @@
-To add comprehensive mobile touch controls, you need to implement **virtual joysticks** for movement and camera control, and **on-screen buttons** for actions, while also detecting the device type to only display these controls on touch-enabled devices.
-
-Here is the updated `index.html` file with the necessary additions to support mobile controls.
-
-### Updated `index.html` Code
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -239,7 +232,7 @@ Here is the updated `index.html` file with the necessary additions to support mo
             height: 100%;
             top: 0;
             left: 0;
-            pointer-events: none; /* Allows clicks to pass through */
+            pointer-events: none;
         }
 
         .joystick-area {
@@ -382,6 +375,8 @@ Here is the updated `index.html` file with the necessary additions to support mo
                 <button class="mobile-btn" onclick="handleObjectInteraction()">👆</button>
                 <button class="mobile-btn" onclick="toggleGrabObject()">✋</button>
                 <button class="mobile-btn" onclick="handleObjectDeletion()">🗑️</button>
+                <button class="mobile-btn" onclick="document.getElementById('mediaInput').click()">📁</button>
+                <button class="mobile-btn" onclick="toggleConcertControl()">🎛️</button>
             </div>
         </div>
     </div>
@@ -1815,7 +1810,7 @@ Here is the updated `index.html` file with the necessary additions to support mo
                     (leftJoystick.currentX - leftJoystick.startX) ** 2 +
                     (leftJoystick.currentY - leftJoystick.startY) ** 2
                 );
-                const joystickRadius = 75; // Half of joystick-area width
+                const joystickRadius = 75;
                 
                 if (joystickMagnitude > 10) {
                     const normalizedX = (leftJoystick.currentX - leftJoystick.startX) / joystickRadius;
@@ -1824,7 +1819,6 @@ Here is the updated `index.html` file with the necessary additions to support mo
                     moveVector.z = -normalizedY;
                     moveVector.x = -normalizedX;
 
-                    // Update joystick handle position
                     const handleX = normalizedX * joystickRadius;
                     const handleY = normalizedY * joystickRadius;
                     leftJoystick.handle.style.transform = `translate(${handleX - 30}px, ${handleY - 30}px)`;
@@ -1832,7 +1826,6 @@ Here is the updated `index.html` file with the necessary additions to support mo
                     leftJoystick.handle.style.transform = 'translate(-50%, -50%)';
                 }
                 
-                // Camera movement from right joystick
                 const rightJoystickMagnitude = Math.sqrt(
                     (rightJoystick.currentX - rightJoystick.startX) ** 2 +
                     (rightJoystick.currentY - rightJoystick.startY) ** 2
@@ -2063,4 +2056,3 @@ Here is the updated `index.html` file with the necessary additions to support mo
     </script>
 </body>
 </html>
-```
