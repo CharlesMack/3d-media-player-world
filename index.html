@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>3D Media Player World - Ultimate Concert & Entertainment Experience</title>
     <style>
         body {
@@ -103,6 +103,8 @@
             bottom: 20px;
             left: 20px;
             display: none;
+            flex-wrap: wrap;
+            justify-content: flex-start;
         }
         
         .control-btn {
@@ -221,6 +223,90 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Mobile Controls */
+        #mobileControls {
+            display: none;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        .joystick-area {
+            position: absolute;
+            bottom: 20px;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            pointer-events: auto;
+            z-index: 10;
+        }
+        #leftJoystick { left: 20px; }
+        #rightJoystick { right: 20px; }
+
+        .joystick-handle {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        #mobileButtons {
+            position: absolute;
+            top: 15%;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: auto;
+        }
+        
+        .mobile-btn {
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid #ff00ff;
+            color: white;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5em;
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+            transition: all 0.2s;
+        }
+        .mobile-btn:active {
+            transform: scale(0.9);
+            box-shadow: 0 0 5px rgba(255, 0, 255, 0.8);
+        }
+
+        /* Responsive UI adjustments for small screens */
+        @media (max-width: 768px) {
+            #controls { display: none !important; }
+            #vibePanel {
+                top: auto;
+                bottom: 150px;
+                left: 50%;
+                right: auto;
+                transform: translateX(-50%);
+                width: 80%;
+                min-width: unset;
+                padding: 10px;
+            }
+            #hud { display: none; }
+            #crosshair { display: none; }
+            #mobileControls { display: block; }
+        }
     </style>
 </head>
 <body>
@@ -277,6 +363,22 @@
         </div>
         
         <div id="notifications"></div>
+
+        <div id="mobileControls">
+            <div id="leftJoystick" class="joystick-area">
+                <div class="joystick-handle"></div>
+            </div>
+            <div id="rightJoystick" class="joystick-area">
+                <div class="joystick-handle"></div>
+            </div>
+            <div id="mobileButtons">
+                <button class="mobile-btn" onclick="handleObjectInteraction()">👆</button>
+                <button class="mobile-btn" onclick="toggleGrabObject()">✋</button>
+                <button class="mobile-btn" onclick="handleObjectDeletion()">🗑️</button>
+                <button class="mobile-btn" onclick="document.getElementById('mediaInput').click()">📁</button>
+                <button class="mobile-btn" onclick="toggleConcertControl()">🎛️</button>
+            </div>
+        </div>
     </div>
     
     <div id="crosshair"></div>
@@ -299,6 +401,11 @@
         let keys = {}, mouse = { x: 0, y: 0, sensitivity: 0.002 };
         let moveSpeed = 20, flySpeed = 30;
         let controlsEnabled = false;
+
+        // Mobile controls
+        let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        let leftJoystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, handle: null };
+        let rightJoystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, handle: null };
         
         // Concert-specific variables
         let vibeLevel = 50, crowdEnergy = 50, bassBoost = 50;
@@ -355,48 +462,160 @@
             
             // Start with menu
             camera.position.set(0, 5, 10);
+
+            // Hide/show PC/mobile controls
+            if (isMobile) {
+                document.getElementById('controls').style.display = 'none';
+                document.getElementById('crosshair').style.display = 'none';
+                document.getElementById('mobileControls').style.display = 'block';
+            } else {
+                document.getElementById('mobileControls').style.display = 'none';
+            }
         }
 
         function setupEventListeners() {
-            // Keyboard
-            document.addEventListener('keydown', onKeyDown);
-            document.addEventListener('keyup', onKeyUp);
+            if (isMobile) {
+                setupMobileControls();
+            } else {
+                // Keyboard
+                document.addEventListener('keydown', onKeyDown);
+                document.addEventListener('keyup', onKeyUp);
+                
+                // Mouse
+                document.addEventListener('mousedown', onMouseDown);
+                document.addEventListener('mouseup', onMouseUp);
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('wheel', onMouseWheel);
+                
+                // Pointer lock
+                document.addEventListener('pointerlockchange', () => {
+                    controlsEnabled = document.pointerLockElement === document.body;
+                });
+            }
             
-            // Mouse
-            document.addEventListener('mousedown', onMouseDown);
-            document.addEventListener('mouseup', onMouseUp);
-            document.addEventListener('mousemove', onMouseMove);
-            document.addEventListener('wheel', onMouseWheel);
-            
-            // Window
+            // Shared events
             window.addEventListener('resize', onWindowResize);
-            
-            // Media input
             document.getElementById('mediaInput').addEventListener('change', handleMediaUpload);
-            
-            // Vibe controls
             document.getElementById('bassBoost').addEventListener('input', updateVibeSettings);
             document.getElementById('crowdEnergy').addEventListener('input', updateVibeSettings);
             document.getElementById('lightIntensity').addEventListener('input', updateVibeSettings);
             document.getElementById('pyroFreq').addEventListener('input', updateVibeSettings);
+        }
+
+        function setupMobileControls() {
+            const leftJoystickArea = document.getElementById('leftJoystick');
+            const rightJoystickArea = document.getElementById('rightJoystick');
+            leftJoystick.handle = leftJoystickArea.querySelector('.joystick-handle');
+            rightJoystick.handle = rightJoystickArea.querySelector('.joystick-handle');
+
+            let touchLookActive = false;
+            let lastTouchX, lastTouchY;
+
+            document.addEventListener('touchstart', (event) => {
+                for (let i = 0; i < event.touches.length; i++) {
+                    const touch = event.touches[i];
+                    
+                    // Left joystick for movement
+                    if (leftJoystickArea.contains(touch.target)) {
+                        leftJoystick.active = true;
+                        leftJoystick.startX = touch.clientX;
+                        leftJoystick.startY = touch.clientY;
+                        leftJoystick.currentX = touch.clientX;
+                        leftJoystick.currentY = touch.clientY;
+                        break;
+                    }
+                    
+                    // Right joystick for camera
+                    if (rightJoystickArea.contains(touch.target)) {
+                        rightJoystick.active = true;
+                        rightJoystick.startX = touch.clientX;
+                        rightJoystick.startY = touch.clientY;
+                        rightJoystick.currentX = touch.clientX;
+                        rightJoystick.currentY = touch.clientY;
+                        break;
+                    }
+
+                    // Look gesture
+                    if (touch.target.tagName === 'CANVAS') {
+                        touchLookActive = true;
+                        lastTouchX = touch.clientX;
+                        lastTouchY = touch.clientY;
+                    }
+                }
+            }, false);
+
+            document.addEventListener('touchmove', (event) => {
+                event.preventDefault(); // Prevent scrolling/zooming
+
+                for (let i = 0; i < event.touches.length; i++) {
+                    const touch = event.touches[i];
+
+                    if (leftJoystick.active) {
+                        leftJoystick.currentX = touch.clientX;
+                        leftJoystick.currentY = touch.clientY;
+                    }
+
+                    if (rightJoystick.active) {
+                        rightJoystick.currentX = touch.clientX;
+                        rightJoystick.currentY = touch.clientY;
+                    }
+                }
+
+                // Camera rotation with a single touch outside of joysticks
+                if (touchLookActive) {
+                    const deltaX = touch.clientX - lastTouchX;
+                    const deltaY = touch.clientY - lastTouchY;
+
+                    camera.rotation.y -= deltaX * mouse.sensitivity * 5; // Increased sensitivity for mobile
+                    camera.rotation.x -= deltaY * mouse.sensitivity * 5;
+                    camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x));
+                    
+                    lastTouchX = touch.clientX;
+                    lastTouchY = touch.clientY;
+                }
+            }, false);
+
+            document.addEventListener('touchend', (event) => {
+                leftJoystick.active = false;
+                rightJoystick.active = false;
+                touchLookActive = false;
+                leftJoystick.handle.style.transform = 'translate(-50%, -50%)';
+                rightJoystick.handle.style.transform = 'translate(-50%, -50%)';
+            }, false);
             
-            // Pointer lock
-            document.addEventListener('pointerlockchange', () => {
-                controlsEnabled = document.pointerLockElement === document.body;
-            });
+            // Interactivity for touch
+            document.addEventListener('click', (event) => {
+                if (event.target.tagName === 'CANVAS') {
+                    // Raycast on click for object interaction
+                    const rect = renderer.domElement.getBoundingClientRect();
+                    const x = (event.clientX - rect.left) / rect.width;
+                    const y = (event.clientY - rect.top) / rect.height;
+                    const coords = new THREE.Vector2(x * 2 - 1, -y * 2 + 1);
+
+                    raycaster.setFromCamera(coords, camera);
+                    const intersects = raycaster.intersectObjects([...mediaObjects, ...vehicles, ...spaceships]);
+                    
+                    if (intersects.length > 0) {
+                        handleObjectClick(intersects[0].object);
+                    }
+                }
+            }, false);
         }
 
         function startGame(venue) {
             currentVenue = venue;
             gameState = 'playing';
             
-            // Hide menu, show game UI
             document.getElementById('startMenu').style.display = 'none';
             document.getElementById('hud').style.display = 'block';
-            document.getElementById('controls').style.display = 'block';
+            document.getElementById('controls').style.display = isMobile ? 'none' : 'block';
             document.getElementById('vibePanel').style.display = 'block';
+            document.getElementById('crosshair').style.display = isMobile ? 'none' : 'block';
+
+            if (!isMobile) {
+                document.body.requestPointerLock();
+            }
             
-            // Update venue info
             const venueNames = {
                 concert: '🎤 Concert Arena',
                 beach: '🏖️ Beach Festival',
@@ -407,16 +626,11 @@
             };
             document.getElementById('venueInfo').textContent = `🎪 Venue: ${venueNames[venue]}`;
             
-            // Request pointer lock
-            document.body.requestPointerLock();
-            
-            // Initialize venue
             setupVenue(venue);
             spawnAudienceBots(20);
             setupConcertLighting();
             setupPyrotechnics();
             
-            // Start the show
             animate();
             
             addNotification(`🎉 Welcome to ${venueNames[venue]}!`);
@@ -424,65 +638,39 @@
         }
 
         function setupVenue(venue) {
-            // Clear existing venue
             scene.clear();
-            
-            // Add audio listener back
             scene.add(camera);
             camera.add(listener);
             
-            // Setup lighting
             const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
             scene.add(ambientLight);
             
             switch(venue) {
-                case 'concert':
-                    setupConcertVenue();
-                    break;
-                case 'beach':
-                    setupBeachVenue();
-                    break;
-                case 'office':
-                    setupOfficeVenue();
-                    break;
-                case 'yacht':
-                    setupYachtVenue();
-                    break;
-                case 'mansion':
-                    setupMansionVenue();
-                    break;
-                case 'space':
-                    setupSpaceVenue();
-                    break;
+                case 'concert': setupConcertVenue(); break;
+                case 'beach': setupBeachVenue(); break;
+                case 'office': setupOfficeVenue(); break;
+                case 'yacht': setupYachtVenue(); break;
+                case 'mansion': setupMansionVenue(); break;
+                case 'space': setupSpaceVenue(); break;
             }
         }
 
         function setupConcertVenue() {
-            // Ground with concert floor pattern
             const groundGeometry = new THREE.PlaneGeometry(200, 200);
             const groundTexture = createCheckerboardTexture();
-            const groundMaterial = new THREE.MeshLambertMaterial({ 
-                map: groundTexture,
-                color: 0x222222
-            });
+            const groundMaterial = new THREE.MeshLambertMaterial({ map: groundTexture, color: 0x222222 });
             const ground = new THREE.Mesh(groundGeometry, groundMaterial);
             ground.rotation.x = -Math.PI / 2;
             ground.receiveShadow = true;
             scene.add(ground);
             
-            // Concert stage
             const stageGeometry = new THREE.BoxGeometry(30, 2, 20);
-            const stageMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x444444,
-                metalness: 0.8,
-                roughness: 0.2
-            });
+            const stageMaterial = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.8, roughness: 0.2 });
             concertStage = new THREE.Mesh(stageGeometry, stageMaterial);
             concertStage.position.set(0, 1, -30);
             concertStage.castShadow = true;
             scene.add(concertStage);
             
-            // Stadium seating
             for(let i = 0; i < 5; i++) {
                 const seatGeometry = new THREE.BoxGeometry(60, 2, 8);
                 const seatMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
@@ -492,15 +680,12 @@
                 scene.add(seat);
             }
             
-            // Atmospheric fog
             scene.fog = new THREE.FogExp2(0x000033, 0.005);
             
-            // Camera position
             camera.position.set(0, 15, 40);
         }
 
         function setupBeachVenue() {
-            // Sandy ground
             const groundGeometry = new THREE.PlaneGeometry(300, 300);
             const sandTexture = createSandTexture();
             const groundMaterial = new THREE.MeshLambertMaterial({ map: sandTexture });
@@ -508,7 +693,6 @@
             ground.rotation.x = -Math.PI / 2;
             scene.add(ground);
             
-            // Ocean
             const waterGeometry = new THREE.PlaneGeometry(300, 100);
             const waterMaterial = new THREE.MeshStandardMaterial({
                 color: 0x006994,
@@ -522,14 +706,12 @@
             water.position.z = -100;
             scene.add(water);
             
-            // Beach stage
             const stageGeometry = new THREE.CylinderGeometry(15, 15, 2, 16);
             const stageMaterial = new THREE.MeshStandardMaterial({ color: 0xDEB887 });
             concertStage = new THREE.Mesh(stageGeometry, stageMaterial);
             concertStage.position.set(0, 1, 0);
             scene.add(concertStage);
             
-            // Palm trees
             for(let i = 0; i < 10; i++) {
                 createPalmTree(
                     Math.random() * 200 - 100,
@@ -542,10 +724,8 @@
         }
 
         function setupSpaceVenue() {
-            // Starfield background
             createStarfield();
             
-            // Space platform
             const platformGeometry = new THREE.CylinderGeometry(50, 50, 5, 16);
             const platformMaterial = new THREE.MeshStandardMaterial({
                 color: 0x333366,
@@ -558,7 +738,6 @@
             platform.position.y = -2;
             scene.add(platform);
             
-            // Central stage
             const stageGeometry = new THREE.CylinderGeometry(15, 15, 3, 8);
             const stageMaterial = new THREE.MeshStandardMaterial({
                 color: 0x666699,
@@ -571,7 +750,6 @@
             concertStage.position.y = 2;
             scene.add(concertStage);
             
-            // Floating observation decks
             for(let i = 0; i < 6; i++) {
                 const angle = (i / 6) * Math.PI * 2;
                 const deckGeometry = new THREE.BoxGeometry(12, 2, 8);
@@ -591,23 +769,19 @@
             
             camera.position.set(0, 20, 40);
             
-            // No fog in space
             scene.fog = null;
         }
 
-        // Add other venue setups (office, yacht, mansion) with similar patterns...
         function setupOfficeVenue() {
-            // Office floor
             const floorGeometry = new THREE.PlaneGeometry(100, 100);
             const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x666666 });
             const floor = new THREE.Mesh(floorGeometry, floorMaterial);
             floor.rotation.x = -Math.PI / 2;
             scene.add(floor);
             
-            // Cubicles and desks
             for(let x = -40; x <= 40; x += 20) {
                 for(let z = -40; z <= 40; z += 20) {
-                    if(Math.abs(x) < 10 && Math.abs(z) < 10) continue; // Center space
+                    if(Math.abs(x) < 10 && Math.abs(z) < 10) continue;
                     
                     const deskGeometry = new THREE.BoxGeometry(8, 1, 4);
                     const deskMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
@@ -617,7 +791,6 @@
                 }
             }
             
-            // Central presentation area
             const presentationGeometry = new THREE.BoxGeometry(20, 0.5, 15);
             const presentationMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
             concertStage = new THREE.Mesh(presentationGeometry, presentationMaterial);
@@ -628,7 +801,6 @@
         }
 
         function setupYachtVenue() {
-            // Ocean
             const oceanGeometry = new THREE.PlaneGeometry(500, 500);
             const oceanMaterial = new THREE.MeshStandardMaterial({
                 color: 0x006994,
@@ -640,21 +812,18 @@
             ocean.position.y = -5;
             scene.add(ocean);
             
-            // Yacht hull
             const hullGeometry = new THREE.BoxGeometry(60, 8, 15);
             const hullMaterial = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
             const hull = new THREE.Mesh(hullGeometry, hullMaterial);
             hull.position.y = 2;
             scene.add(hull);
             
-            // Yacht deck (stage)
             const deckGeometry = new THREE.BoxGeometry(55, 2, 12);
             const deckMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
             concertStage = new THREE.Mesh(deckGeometry, deckMaterial);
             concertStage.position.y = 6;
             scene.add(concertStage);
             
-            // Yacht superstructure
             const superGeometry = new THREE.BoxGeometry(20, 12, 10);
             const superMaterial = new THREE.MeshStandardMaterial({ color: 0xF5F5F5 });
             const superstructure = new THREE.Mesh(superGeometry, superMaterial);
@@ -666,7 +835,6 @@
         }
 
         function setupMansionVenue() {
-            // Marble floor
             const floorGeometry = new THREE.PlaneGeometry(80, 80);
             const floorMaterial = new THREE.MeshStandardMaterial({
                 color: 0xF8F8FF,
@@ -677,10 +845,8 @@
             floor.rotation.x = -Math.PI / 2;
             scene.add(floor);
             
-            // Grand ballroom walls
             const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xFFD700 });
             
-            // Create walls
             const wallHeight = 15;
             const walls = [
                 { pos: [0, wallHeight/2, -40], size: [80, wallHeight, 2] },
@@ -696,7 +862,6 @@
                 scene.add(wallMesh);
             });
             
-            // Grand chandelier area (stage)
             const chandelierGeometry = new THREE.CylinderGeometry(12, 12, 1, 16);
             const chandelierMaterial = new THREE.MeshStandardMaterial({
                 color: 0xFFFFFF,
@@ -707,7 +872,6 @@
             concertStage.position.y = 1;
             scene.add(concertStage);
             
-            // Columns
             for(let i = 0; i < 8; i++) {
                 const angle = (i / 8) * Math.PI * 2;
                 const columnGeometry = new THREE.CylinderGeometry(2, 2, 15, 8);
@@ -728,10 +892,8 @@
             audienceBots = [];
             
             for(let i = 0; i < count; i++) {
-                // Create a person-like shape using cylinder + sphere
                 const botGroup = new THREE.Group();
                 
-                // Body
                 const bodyGeometry = new THREE.CylinderGeometry(0.3, 0.4, 1.2, 8);
                 const bodyMaterial = new THREE.MeshStandardMaterial({
                     color: new THREE.Color().setHSL(Math.random(), 0.8, 0.6)
@@ -740,7 +902,6 @@
                 body.position.y = 0.6;
                 botGroup.add(body);
                 
-                // Head
                 const headGeometry = new THREE.SphereGeometry(0.25, 8, 6);
                 const headMaterial = new THREE.MeshStandardMaterial({
                     color: new THREE.Color().setHSL(Math.random(), 0.5, 0.7)
@@ -751,7 +912,6 @@
                 
                 const bot = botGroup;
                 
-                // Position based on venue
                 let x, z;
                 if(currentVenue === 'concert') {
                     x = Math.random() * 80 - 40;
@@ -774,7 +934,6 @@
                 bot.position.set(x, 2, z);
                 bot.castShadow = true;
                 
-                // Bot AI properties
                 bot.userData = {
                     type: 'audience',
                     energy: Math.random(),
@@ -795,7 +954,6 @@
         }
 
         function setupConcertLighting() {
-            // Main spotlight on stage
             const spotlight = new THREE.SpotLight(0xffffff, 2, 100, Math.PI / 6, 0.5);
             spotlight.position.set(0, 30, -20);
             spotlight.target.position.set(0, 0, -30);
@@ -806,7 +964,6 @@
             scene.add(spotlight.target);
             concertLights.push(spotlight);
 
-            // Colored moving lights
             const colors = [0xff0040, 0x40ff00, 0x0040ff, 0xff8000, 0x8000ff, 0x00ff80];
             
             for(let i = 0; i < 8; i++) {
@@ -818,7 +975,6 @@
                     Math.sin(angle) * 25 - 15
                 );
                 
-                // Create targets for moving lights
                 const target = new THREE.Object3D();
                 target.position.set(0, 0, -30);
                 scene.add(target);
@@ -836,7 +992,6 @@
                 concertLights.push(light);
             }
 
-            // Laser effect lights
             for(let i = 0; i < 12; i++) {
                 const laser = new THREE.DirectionalLight(0xff00ff, 0.8);
                 laser.position.set(
@@ -858,7 +1013,6 @@
         }
 
         function setupPyrotechnics() {
-            // Create pyro launch points around the stage
             const pyroPoints = [];
             for(let i = 0; i < 6; i++) {
                 const angle = (i / 6) * Math.PI * 2;
@@ -894,7 +1048,6 @@
                 }
                 
                 if(mediaObject) {
-                    // Position on or near the stage
                     const stagePos = concertStage ? concertStage.position : new THREE.Vector3(0, 2, -30);
                     mediaObject.position.set(
                         stagePos.x + (Math.random() - 0.5) * 20,
@@ -908,7 +1061,6 @@
                     
                     addNotification(`🎵 Added ${file.name} to the show!`);
                     
-                    // Trigger pyro effect for new media
                     if(pyroEnabled) {
                         triggerPyroEffect(mediaObject.position);
                     }
@@ -964,7 +1116,6 @@
                 muted: false
             };
             
-            // Auto-play with user interaction fallback
             video.play().catch(() => {
                 addNotification(`Click ${file.name} to start video!`);
             });
@@ -982,13 +1133,11 @@
                 audio.setRefDistance(5);
                 audio.setVolume(0.8);
                 
-                // Set up global beat detection if this is the first audio
                 if(!globalBeatDetection.analyser) {
                     globalBeatDetection.analyser = analyser;
                 }
             });
             
-            // Visual representation
             const geometry = new THREE.IcosahedronGeometry(2, 1);
             const material = new THREE.MeshStandardMaterial({
                 color: 0x00ffff,
@@ -1026,7 +1175,6 @@
         }
 
         function spawnCar() {
-            // Car body
             const bodyGeometry = new THREE.BoxGeometry(4, 1.5, 2);
             const bodyMaterial = new THREE.MeshStandardMaterial({
                 color: 0xff4444,
@@ -1037,7 +1185,6 @@
             body.position.set(camera.position.x + 5, 1, camera.position.z);
             body.castShadow = true;
             
-            // Wheels
             const wheelGeometry = new THREE.CylinderGeometry(0.5, 0.5, 0.3, 8);
             const wheelMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
             
@@ -1055,7 +1202,6 @@
                 wheels.push(wheel);
             });
             
-            // Underglow lights
             const underglowColors = [0xff0000, 0x00ff00, 0x0000ff, 0xff00ff];
             underglowColors.forEach((color, i) => {
                 const light = new THREE.PointLight(color, 2, 10);
@@ -1067,8 +1213,8 @@
                 type: 'vehicle',
                 subtype: 'car',
                 speed: 0,
-                maxSpeed: 500, // Increased by 20x from 25
-                acceleration: 10, // Increased by 20x from 0.5
+                maxSpeed: 500,
+                acceleration: 10,
                 wheels: wheels,
                 engineSound: null
             };
@@ -1081,7 +1227,6 @@
         }
 
         function spawnSpaceship() {
-            // Ship hull
             const hullGeometry = new THREE.ConeGeometry(2, 6, 8);
             const hullMaterial = new THREE.MeshStandardMaterial({
                 color: 0x4444ff,
@@ -1094,7 +1239,6 @@
             hull.position.set(camera.position.x, camera.position.y + 10, camera.position.z);
             hull.rotation.x = Math.PI;
             
-            // Engine glow
             const engineGeometry = new THREE.SphereGeometry(0.8, 8, 6);
             const engineMaterial = new THREE.MeshBasicMaterial({
                 color: 0x00ffff,
@@ -1105,7 +1249,6 @@
             engine.position.y = 2.5;
             hull.add(engine);
             
-            // Thruster particles
             const thrusterGeometry = new THREE.BufferGeometry();
             const thrusterCount = 50;
             const thrusterPositions = new Float32Array(thrusterCount * 3);
@@ -1150,13 +1293,11 @@
             const lightIntensity = document.getElementById('lightIntensity').value / 100;
             const pyroFreq = document.getElementById('pyroFreq').value;
             
-            // Update lighting intensity
             concertLights.forEach(light => {
                 light.intensity = light.userData?.originalIntensity || 1.5;
                 light.intensity *= lightIntensity;
             });
             
-            // Update crowd energy
             vibeLevel = (parseInt(bassBoost) + parseInt(crowdEnergy)) / 2;
             document.getElementById('vibeLevel').textContent = `⚡ Vibe: ${Math.round(vibeLevel)}%`;
         }
@@ -1271,28 +1412,22 @@
                     const data = obj.userData.analyser.getFrequencyData();
                     const avgFreq = data.reduce((sum, val) => sum + val, 0) / data.length / 255;
                     
-                    // Scale based on audio
                     const scale = 1 + avgFreq * (bassBoost / 100);
                     obj.scale.setScalar(scale);
                     
-                    // Color shift
                     const hue = (avgFreq * 360 + performance.now() * 0.1) % 360;
                     obj.material.color.setHSL(hue / 360, 0.8, 0.5);
                     
-                    // Emissive intensity
                     obj.material.emissiveIntensity = 0.2 + avgFreq * 0.8;
                 }
             });
             
-            // Beat detection effects
             if(detectBeat()) {
-                // Flash lights
                 concertLights.forEach(light => {
                     light.intensity *= 2;
                     setTimeout(() => light.intensity /= 2, 100);
                 });
                 
-                // Trigger random pyro
                 if(pyroEnabled && Math.random() < document.getElementById('pyroFreq').value / 100) {
                     const randomPyro = pyroSystems[Math.floor(Math.random() * pyroSystems.length)];
                     if(randomPyro) {
@@ -1300,7 +1435,6 @@
                     }
                 }
                 
-                // Crowd reaction
                 audienceBots.forEach(bot => {
                     bot.userData.bouncePhase = Math.random() * Math.PI * 2;
                     bot.userData.bodyMaterial.color.setHSL(Math.random(), 0.8, 0.6);
@@ -1313,18 +1447,15 @@
             
             concertLights.forEach((light, index) => {
                 if(light.userData && light.userData.originalPosition) {
-                    // Move lights in patterns
                     const moveX = Math.sin(time * light.userData.moveSpeed + index) * light.userData.moveRadius;
                     const moveZ = Math.cos(time * light.userData.moveSpeed + index) * light.userData.moveRadius;
                     
                     light.position.x = light.userData.originalPosition.x + moveX;
                     light.position.z = light.userData.originalPosition.z + moveZ;
                     
-                    // Color cycling
                     const hue = (time * 50 + light.userData.colorPhase * 180 / Math.PI) % 360;
                     light.color.setHSL(hue / 360, 1, 0.5);
                     
-                    // Target movement - only if target exists and isn't the stage
                     if(light.target && light.target !== concertStage && light.userData.targetOriginal) {
                         const targetX = Math.sin(time * 0.7 + index * 0.5) * 10;
                         const targetZ = Math.cos(time * 0.7 + index * 0.5) * 10 - 30;
@@ -1333,7 +1464,6 @@
                 }
             });
             
-            // Laser lights
             laserLights.forEach((laser, index) => {
                 if(laser.userData) {
                     const phase = time * laser.userData.sweepSpeed + laser.userData.phase;
@@ -1343,7 +1473,6 @@
                     laser.position.x += (x - laser.position.x) * 0.1;
                     laser.position.z += (z - laser.position.z) * 0.1;
                     
-                    // Color shift
                     const hue = (phase * 30) % 360;
                     laser.color.setHSL(hue / 360, 1, 0.5);
                 }
@@ -1354,7 +1483,6 @@
             const time = performance.now() * 0.001;
             
             audienceBots.forEach((bot, index) => {
-                // Dancing motion
                 const bounce = Math.sin(time * 4 + bot.userData.bouncePhase) * 0.3;
                 const sway = Math.sin(time * 2 + index * 0.1) * 0.2;
                 
@@ -1362,11 +1490,9 @@
                 bot.rotation.y = sway;
                 bot.rotation.z = sway * 0.5;
                 
-                // Energy-based intensity
                 const energyMultiplier = (crowdEnergy / 100) * bot.userData.energy;
                 bot.position.y += Math.abs(bounce) * energyMultiplier;
                 
-                // Occasional color flashes
                 if(Math.random() < 0.01) {
                     bot.material.color.setHSL(Math.random(), 0.8, 0.6);
                     setTimeout(() => {
@@ -1374,7 +1500,6 @@
                     }, 200);
                 }
                 
-                // Look towards stage occasionally
                 if(Math.random() < 0.005) {
                     const stageDir = concertStage ? concertStage.position : new THREE.Vector3(0, 0, -30);
                     bot.lookAt(stageDir);
@@ -1393,7 +1518,6 @@
                     return false;
                 }
                 
-                // Update particle positions
                 const positions = p.system.geometry.attributes.position.array;
                 const velocities = p.system.geometry.attributes.velocity.array;
                 
@@ -1402,7 +1526,6 @@
                     positions[i * 3 + 1] += velocities[i * 3 + 1] * delta;
                     positions[i * 3 + 2] += velocities[i * 3 + 2] * delta;
                     
-                    // Gravity for pyro
                     if(p.type === 'pyro') {
                         velocities[i * 3 + 1] -= 9.8 * delta;
                     }
@@ -1410,7 +1533,6 @@
                 
                 p.system.geometry.attributes.position.needsUpdate = true;
                 
-                // Fade out
                 p.system.material.opacity = 1 - (p.time / p.lifetime);
                 
                 return true;
@@ -1431,7 +1553,6 @@
                 ship.position.y += hover * 0.01;
                 
                 if(ship.userData.thrusters) {
-                    // Animate thruster particles
                     const positions = ship.userData.thrusters.geometry.attributes.position.array;
                     for(let i = 0; i < positions.length / 3; i++) {
                         positions[i * 3 + 1] += (Math.random() - 0.5) * 0.1;
@@ -1454,37 +1575,30 @@
                     break;
                 case 'Space':
                     if(playerVehicle) {
-                        // Honk or boost
                         addNotification(playerVehicle.userData.subtype === 'car' ? '🚗 BEEP BEEP!' : '🚀 BOOST!');
                     }
                     break;
                 case 'KeyG':
-                    // Grab/release objects
                     toggleGrabObject();
                     break;
                 case 'KeyP':
-                    // Toggle all media playback
                     toggleAllMedia();
                     break;
                 case 'KeyM':
-                    // Toggle mute for selected object
                     toggleMuteObject();
                     break;
                 case 'KeyU':
                 case 'KeyN':
-                    // Add media key
                     document.getElementById('mediaInput').click();
                     break;
                 case 'KeyV':
-                    // Toggle concert control visibility
                     toggleConcertControl();
                     break;
                 case 'KeyQ':
-                    // Exit vehicle
                     if (playerVehicle) {
                         addNotification(`Exited ${playerVehicle.userData.subtype}!`);
                         playerVehicle = null;
-                        document.body.requestPointerLock(); // Re-enable mouse look
+                        document.body.requestPointerLock();
                     }
                     break;
             }
@@ -1497,7 +1611,6 @@
         function onMouseDown(event) {
             if(!controlsEnabled) return;
             
-            // Click to interact with objects
             raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
             const intersects = raycaster.intersectObjects([...mediaObjects, ...audienceBots, ...vehicles, ...spaceships]);
             
@@ -1505,17 +1618,14 @@
                 const target = intersects[0].object;
                 handleObjectClick(target);
             }
-            document.body.requestPointerLock(); // Ensure pointer lock after interaction
+            document.body.requestPointerLock();
         }
 
-        function onMouseUp(event) {
-            // Mouse up actions
-        }
+        function onMouseUp(event) {}
 
         function onMouseMove(event) {
             if(!controlsEnabled) return;
             
-            // Camera rotation
             camera.rotation.y -= event.movementX * mouse.sensitivity;
             camera.rotation.x -= event.movementY * mouse.sensitivity;
             camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x));
@@ -1523,11 +1633,9 @@
 
         function onMouseWheel(event) {
             if(grabbedObject) {
-                // Scale grabbed object
                 const scale = grabbedObject.scale.x + event.deltaY * -0.01;
                 grabbedObject.scale.setScalar(Math.max(0.1, Math.min(5, scale)));
             } else if(selectedObject) {
-                // Distance adjustment
                 grabDistance = Math.max(2, Math.min(20, grabDistance + event.deltaY * 0.01));
             }
         }
@@ -1546,7 +1654,9 @@
                 const target = intersects[0].object;
                 handleObjectClick(target);
             }
-            document.body.requestPointerLock(); // Ensure pointer lock after interaction
+            if (!isMobile) {
+                document.body.requestPointerLock();
+            }
         }
 
         function handleObjectClick(target) {
@@ -1572,7 +1682,9 @@
                 playerVehicle = target;
                 addNotification(`🚗 Entered ${target.userData.subtype}!`);
             }
-            document.body.requestPointerLock(); // Ensure pointer lock after click
+            if (!isMobile) {
+                document.body.requestPointerLock();
+            }
         }
 
         function toggleMuteObject() {
@@ -1595,7 +1707,6 @@
 
         function handleObjectDeletion() {
             if(grabbedObject) {
-                // Stop any playing media
                 if(grabbedObject.userData.audio) {
                     grabbedObject.userData.audio.stop();
                 }
@@ -1603,7 +1714,6 @@
                     grabbedObject.userData.video.pause();
                 }
                 
-                // Remove from scene and arrays
                 scene.remove(grabbedObject);
                 mediaObjects = mediaObjects.filter(obj => obj !== grabbedObject);
                 vehicles = vehicles.filter(obj => obj !== grabbedObject);
@@ -1612,18 +1722,18 @@
                 addNotification(`🗑️ Deleted: ${grabbedObject.userData.fileName || 'object'}`);
                 grabbedObject = null;
                 updateMediaCount();
-                document.body.requestPointerLock(); // Re-enable mouse look after destroy
+                if (!isMobile) {
+                    document.body.requestPointerLock();
+                }
             }
         }
 
         function toggleGrabObject() {
             if(grabbedObject) {
-                // Release object
                 grabbedObject.material.emissive.set(0x000000);
                 grabbedObject = null;
                 addNotification('👋 Released object');
             } else {
-                // Grab object
                 raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
                 const intersects = raycaster.intersectObjects([...mediaObjects, ...vehicles, ...spaceships]);
                 
@@ -1633,6 +1743,9 @@
                     grabDistance = intersects[0].distance;
                     addNotification(`✋ Grabbed: ${grabbedObject.userData.fileName || 'object'}`);
                 }
+            }
+            if (!isMobile) {
+                document.body.requestPointerLock();
             }
         }
 
@@ -1667,12 +1780,13 @@
             } else if(pausedCount > 0) {
                 addNotification(`⏸️ Paused ${pausedCount} media items`);
             }
-            document.body.requestPointerLock(); // Ensure pointer lock after toggling media
+            if (!isMobile) {
+                document.body.requestPointerLock();
+            }
         }
 
         function updateMovement() {
             const delta = clock.getDelta();
-            const moveVector = new THREE.Vector3();
             
             if(playerVehicle) {
                 updateVehicleMovement(delta);
@@ -1680,7 +1794,6 @@
                 updatePlayerMovement(delta);
             }
             
-            // Update grabbed object position
             if(grabbedObject) {
                 const direction = new THREE.Vector3(0, 0, -grabDistance);
                 direction.applyQuaternion(camera.quaternion);
@@ -1692,20 +1805,60 @@
             const moveVector = new THREE.Vector3();
             const speed = keys.ShiftLeft ? flySpeed : moveSpeed;
             
-            // Movement
-            if(keys.KeyW) moveVector.z -= 1;
-            if(keys.KeyS) moveVector.z += 1;
-            if(keys.KeyA) moveVector.x -= 1;
-            if(keys.KeyD) moveVector.x += 1;
-            if(keys.KeyF || keys.Space) moveVector.y += 1;
-            if(keys.KeyC) moveVector.y -= 1;
+            if (isMobile) {
+                const joystickMagnitude = Math.sqrt(
+                    (leftJoystick.currentX - leftJoystick.startX) ** 2 +
+                    (leftJoystick.currentY - leftJoystick.startY) ** 2
+                );
+                const joystickRadius = 75;
+                
+                if (joystickMagnitude > 10) {
+                    const normalizedX = (leftJoystick.currentX - leftJoystick.startX) / joystickRadius;
+                    const normalizedY = (leftJoystick.currentY - leftJoystick.startY) / joystickRadius;
+                    
+                    moveVector.z = -normalizedY;
+                    moveVector.x = -normalizedX;
+
+                    const handleX = normalizedX * joystickRadius;
+                    const handleY = normalizedY * joystickRadius;
+                    leftJoystick.handle.style.transform = `translate(${handleX - 30}px, ${handleY - 30}px)`;
+                } else {
+                    leftJoystick.handle.style.transform = 'translate(-50%, -50%)';
+                }
+                
+                const rightJoystickMagnitude = Math.sqrt(
+                    (rightJoystick.currentX - rightJoystick.startX) ** 2 +
+                    (rightJoystick.currentY - rightJoystick.startY) ** 2
+                );
+                
+                if (rightJoystickMagnitude > 10) {
+                    const normalizedX = (rightJoystick.currentX - rightJoystick.startX) / joystickRadius;
+                    const normalizedY = (rightJoystick.currentY - rightJoystick.startY) / joystickRadius;
+                    
+                    camera.rotation.y -= normalizedX * 0.05;
+                    camera.rotation.x -= normalizedY * 0.05;
+                    camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x));
+
+                    const handleX = normalizedX * joystickRadius;
+                    const handleY = normalizedY * joystickRadius;
+                    rightJoystick.handle.style.transform = `translate(${handleX - 30}px, ${handleY - 30}px)`;
+                } else {
+                    rightJoystick.handle.style.transform = 'translate(-50%, -50%)';
+                }
+
+            } else { // PC controls
+                if(keys.KeyW) moveVector.z -= 1;
+                if(keys.KeyS) moveVector.z += 1;
+                if(keys.KeyA) moveVector.x -= 1;
+                if(keys.KeyD) moveVector.x += 1;
+                if(keys.KeyF || keys.Space) moveVector.y += 1;
+                if(keys.KeyC) moveVector.y -= 1;
+            }
             
-            // Apply movement
             if(moveVector.length() > 0) {
                 moveVector.normalize();
                 moveVector.multiplyScalar(speed * delta);
                 
-                // Transform movement relative to camera rotation
                 const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
                 const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
                 const up = new THREE.Vector3(0, 1, 0);
@@ -1722,19 +1875,32 @@
             const vehicle = playerVehicle;
             let acceleration = 0;
             let steering = 0;
+
+            if (isMobile) {
+                const joystickMagnitude = Math.sqrt(
+                    (leftJoystick.currentX - leftJoystick.startX) ** 2 +
+                    (leftJoystick.currentY - leftJoystick.startY) ** 2
+                );
+                const joystickRadius = 75;
+
+                if (joystickMagnitude > 10) {
+                    const normalizedY = (leftJoystick.currentY - leftJoystick.startY) / joystickRadius;
+                    const normalizedX = (leftJoystick.currentX - leftJoystick.startX) / joystickRadius;
+                    acceleration = -normalizedY * vehicle.userData.acceleration;
+                    steering = -normalizedX;
+                }
+            } else { // PC controls
+                if(keys.KeyW) acceleration = vehicle.userData.acceleration;
+                if(keys.KeyS) acceleration = -vehicle.userData.acceleration * 0.5;
+                if(keys.KeyA) steering = -1;
+                if(keys.KeyD) steering = 1;
+            }
             
-            if(keys.KeyW) acceleration = vehicle.userData.acceleration;
-            if(keys.KeyS) acceleration = -vehicle.userData.acceleration * 0.5;
-            if(keys.KeyA) steering = -1;
-            if(keys.KeyD) steering = 1;
-            
-            // Update speed
             vehicle.userData.speed += acceleration * delta;
-            vehicle.userData.speed *= 0.95; // Friction
+            vehicle.userData.speed *= 0.95;
             vehicle.userData.speed = Math.max(-vehicle.userData.maxSpeed * 0.5, 
                                             Math.min(vehicle.userData.maxSpeed, vehicle.userData.speed));
             
-            // Update position and rotation
             if(Math.abs(vehicle.userData.speed) > 0.1) {
                 const moveDistance = vehicle.userData.speed * delta;
                 const direction = new THREE.Vector3(0, 0, -moveDistance);
@@ -1744,7 +1910,6 @@
                 if(vehicle.userData.subtype === 'car') {
                     vehicle.rotation.y += steering * (vehicle.userData.speed / vehicle.userData.maxSpeed) * delta * 2;
                 } else if(vehicle.userData.subtype === 'spaceship') {
-                    // 3D movement for spaceships
                     if(keys.KeyF || keys.Space) vehicle.position.y += 10 * delta;
                     if(keys.KeyC) vehicle.position.y -= 10 * delta;
                     vehicle.rotation.y += steering * delta;
@@ -1752,7 +1917,6 @@
                 }
             }
             
-            // Update camera to follow vehicle
             const vehiclePos = vehicle.position.clone();
             const offset = new THREE.Vector3(0, 5, 8);
             offset.applyQuaternion(vehicle.quaternion);
@@ -1769,20 +1933,17 @@
             
             notifications.appendChild(notification);
             
-            // Auto-remove after 4 seconds
             setTimeout(() => {
                 if(notification.parentNode) {
                     notification.parentNode.removeChild(notification);
                 }
             }, 4000);
             
-            // Limit notification count
             while(notifications.children.length > 5) {
                 notifications.removeChild(notifications.firstChild);
             }
         }
 
-        // Utility functions for creating textures
         function createCheckerboardTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = canvas.height = 128;
@@ -1811,14 +1972,12 @@
             canvas.width = canvas.height = 256;
             const context = canvas.getContext('2d');
             
-            // Base sand color
             const gradient = context.createLinearGradient(0, 0, 256, 256);
             gradient.addColorStop(0, '#F4E4BC');
             gradient.addColorStop(1, '#DEB887');
             context.fillStyle = gradient;
             context.fillRect(0, 0, 256, 256);
             
-            // Add some texture
             for(let i = 0; i < 1000; i++) {
                 context.fillStyle = `rgba(${139 + Math.random() * 20}, ${69 + Math.random() * 20}, ${19 + Math.random() * 20}, 0.3)`;
                 context.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
@@ -1831,14 +1990,12 @@
         }
 
         function createPalmTree(x, z) {
-            // Trunk
             const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.5, 8, 8);
             const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
             const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
             trunk.position.set(x, 4, z);
             scene.add(trunk);
             
-            // Leaves
             for(let i = 0; i < 6; i++) {
                 const leafGeometry = new THREE.ConeGeometry(0.2, 4, 4);
                 const leafMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 });
@@ -1880,7 +2037,6 @@
             scene.add(stars);
         }
 
-        // Main animation loop
         function animate() {
             if(gameState !== 'playing') return;
             
@@ -1896,7 +2052,6 @@
             renderer.render(scene, camera);
         }
 
-        // Initialize everything when the page loads
         window.addEventListener('load', init);
     </script>
 </body>
