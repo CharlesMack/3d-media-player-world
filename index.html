@@ -1,9 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D Media Player World - Ultimate Concert & Entertainment Experience</title>
+<!-- Primary Meta Tags -->
+<title>3D Media Player World — Interactive 3D Concert & Entertainment Universe</title>
+<meta name="title" content="3D Media Player World — Interactive 3D Concert & Entertainment Universe" />
+<meta name="description" content="Step into the 3D Media Player World — an interactive web-based concert and media player. Upload your own music, videos, and images to immersive venues with AI crowds, reactive lighting, and pyrotechnics." />
+<meta name="keywords" content="3D concert, virtual media player, interactive 3D world, web-based concert, Three.js, immersive entertainment, online concert, music visualizer, AI audience, virtual stage" />
+<meta name="author" content="Charles Mack" />
+<meta name="robots" content="index, follow" />
+<meta name="theme-color" content="#000000" />
+
+<!-- Open Graph / Facebook -->
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://charlesmack.github.io/3d-media-player-world/" />
+<meta property="og:title" content="3D Media Player World — Interactive 3D Concert Experience" />
+<meta property="og:description" content="Upload music, videos, and images to a fully interactive 3D concert world. Choose venues, control effects, and let the AI audience react to your vibe." />
+<meta property="og:site_name" content="3D Media Player World" />
+<meta property="og:locale" content="en_US" />
+
+<!-- Twitter -->
+<meta property="twitter:card" content="summary" />
+<meta property="twitter:url" content="https://charlesmack.github.io/3d-media-player-world/" />
+<meta property="twitter:title" content="3D Media Player World — Interactive 3D Concert Experience" />
+<meta property="twitter:description" content="An immersive 3D concert and media player world. Upload your media, choose venues, control effects, and enjoy dynamic AI audience reactions." />
+<meta property="twitter:creator" content="@CharlesMack" />
+
+<!-- GEO SEO -->
+<meta name="geo.region" content="US" />
+<meta name="geo.placename" content="New York, United States" />
+<meta name="geo.position" content="40.7128;-74.0060" />
+<meta name="ICBM" content="40.7128, -74.0060" />
+
+<!-- Canonical -->
+<link rel="canonical" href="https://charlesmack.github.io/3d-media-player-world/" />
+
+<!-- Optional: Placeholder favicon (will prevent 404 in browser tab) -->
+<link rel="icon" href="data:," />
+
     <style>
         body {
             margin: 0;
@@ -323,14 +356,22 @@
             <h1>🎵 WORLD 🎵</h1>
             <p>Your Ultimate Concert & Entertainment Universe</p>
             
-            <div class="venue-buttons">
-                <button class="venue-btn" onclick="startGame('concert')">🎤 Concert Arena</button>
-                <button class="venue-btn" onclick="startGame('beach')">🏖️ Beach Festival</button>
-                <button class="venue-btn" onclick="startGame('office')">🏢 Office Chill</button>
-                <button class="venue-btn" onclick="startGame('yacht')">🛥️ Luxury Yacht</button>
-                <button class="venue-btn" onclick="startGame('mansion')">🏰 Grand Mansion</button>
-                <button class="venue-btn" onclick="startGame('space')">🚀 Space Station</button>
-            </div>
+<div class="venue-buttons">
+    <button class="venue-btn" onclick="startGame('concert')">🎤 Concert Arena</button>
+    <button class="venue-btn" onclick="startGame('beach')">🏖️ Beach Festival</button>
+    <button class="venue-btn" onclick="startGame('office')">🏢 Office Chill</button>
+    <button class="venue-btn" onclick="startGame('yacht')">🛥️ Luxury Yacht</button>
+    <button class="venue-btn" onclick="startGame('mansion')">🏰 Grand Mansion</button>
+    <button class="venue-btn" onclick="startGame('space')">🚀 Space Station</button>
+
+    <!-- New Download Button -->
+    <a href="https://github.com/CharlesMack/3d-media-player-world/archive/refs/heads/main.zip" 
+       class="venue-btn" 
+       download>
+       ⬇️ Download Project
+    </a>
+</div>
+
             
             <input type="file" id="mediaInput" accept="image/*, video/*, audio/*" multiple>
             <button class="venue-btn" onclick="document.getElementById('mediaInput').click()">
