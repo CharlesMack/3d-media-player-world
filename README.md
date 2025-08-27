@@ -44,6 +44,21 @@ To run this project, simply download the `index.html` file and open it in a mode
 
 ---
 
+        Creator Credit
+       
+            This virtual experience, <strong>3D Media Player World</strong>, was created and developed by 
+            <strong>Charles Mack III</strong>. All original 3D environments, interactive elements, and design concepts 
+            are the intellectual property of Charles Mack III, unless otherwise noted. This work is licensed under 
+            a  href="https://creativecommons.org/licenses/by/4.0/"  Creative Commons Attribution 4.0 International License
+            which requires attribution to the creator when used or shared.
+          
+            For inquiries, collaborations, or to request permission for use, please contact:
+            <a href="mailto:charlesmackiii@example.com" 
+            follow href="https://x.com/mackcwm" @mackcwm on X.
+            
+           Last updated: August 27, 2025
+       
+
 ### ✍️ Author
 
 - **Charles Mack** - *Initial Work* - [CharlesMack](https://github.com/CharlesMack)
