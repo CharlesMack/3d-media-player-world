@@ -44,65 +44,18 @@ To run this project, simply download the `index.html` file and open it in a mode
 
 ---
 
-  <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Creator Credit - Charles Mack III</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #1a1a1a;
-            color: #ffffff;
-            text-align: center;
-            padding: 20px;
-        }
-        .credit-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #2c2c2c;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-        }
-        .credit-title {
-            color: #00ccff;
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-        .credit-text {
-            font-size: 16px;
-            line-height: 1.5;
-        }
-        .contact-link {
-            color: #00ffcc;
-            text-decoration: none;
-        }
-        .contact-link:hover {
-            text-decoration: underline;
-        }
-    </style>
-</head>
-<body>
-    <div class="credit-container">
-        <div class="credit-title">Creator Credit</div>
-        <div class="credit-text">
-            This virtual experience, <strong>3D Media Player World</strong>, was created and developed by 
-            <strong>Charles Mack III</strong>. All original 3D environments, interactive elements, and design concepts 
+        Creator Credit
+       
+            This virtual experience, 3D Media Player World was created and developed by 
+            Charles Mack III< All original 3D environments, interactive elements, and design concepts 
             are the intellectual property of Charles Mack III, unless otherwise noted. This work is licensed under 
-            a <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution 4.0 International License</a>, 
+            a  href="https://creativecommons.org/licenses/by/4.0/"  Creative Commons Attribution 4.0 International License
             which requires attribution to the creator when used or shared.
-            <br><br>
-            For inquiries, collaborations, or to request permission for use, please contact:
-             
-            follow <a href="https://x.com/mackcwm" class="contact-link" target="_blank">@mackcwm</a> on X.
-            <br><br>
-            <em>Last updated: August 27, 2025</em>
-        </div>
-    </div>
-</body>
-</html>
+          
+            For inquiries, collaborations, or to request permission for use, please
+            follow href="https://x.com/mackcwm" @mackcwm on X.
+            
+           Last updated: August 27, 2025
        
 
 ### ✍️ Author
